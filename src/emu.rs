@@ -356,6 +356,122 @@ impl Emu {
                 self.v_reg[0xF] = pixel_unset as u8;
             }
 
+            // EX9E - Skip if key pressed
+            [0xE, _, 9, 0xE] => {
+                let x = nibbles[1];
+                let vx = self.v_reg[x as usize];
+
+                let key = self.keys[vx as usize];
+
+                if key {
+                    self.pc += 2;
+                }
+            }
+
+            // EXA1 - Skip if key not pressed
+            [0xE, _, 0xA, 1] => {
+                let x = nibbles[1];
+                let vx = self.v_reg[x as usize];
+
+                let key = self.keys[vx as usize];
+
+                if !key {
+                    self.pc += 2;
+                }
+            }
+
+            // FX07 - VX = DT
+            [0xF, _, 0, 7] => {
+                let x = nibbles[1];
+                self.v_reg[x as usize] = self.dt;
+            }
+
+            // FX0A - Wait until key pressed
+            // If a key isn't pressed, this moves the program counter back to rerun the
+            // instruction. Better than a loop so we can still take input.
+            [0xF, _, 0, 0xA] => {
+                let x = nibbles[1];
+
+                match self.keys.iter().position(|&key| key) {
+                    Some(position) => {
+                        self.v_reg[x as usize] = position as u8;
+                    }
+                    None => {
+                        self.pc -= 2;
+                    }
+                }
+            }
+
+            // FX15 - DT = VX
+            [0xF, _, 1, 5] => {
+                let x = nibbles[1];
+                self.dt = self.v_reg[x as usize];
+            }
+
+            // FX18 - ST = VX
+            [0xF, _, 1, 8] => {
+                let x = nibbles[1];
+                self.st = self.v_reg[x as usize];
+            }
+
+            // FX1E - I += VX
+            [0xF, _, 1, 0xE] => {
+                let x = nibbles[1];
+
+                let vx = self.v_reg[x as usize];
+
+                self.i_reg = self.i_reg.wrapping_add(vx as u16);
+            }
+
+            // FX29 - Set I to font address
+            [0xF, _, 2, 9] => {
+                let x = nibbles[1];
+
+                let vx = self.v_reg[x as usize];
+
+                self.i_reg = vx as u16 * 5; // Each character is 5 bytes, stored
+                                            // starting at address 0.
+            }
+
+            // FX33 - I = BCD of VX
+            // Take VX, which is at most a 3 digit number and store each individual
+            // digit in the I register.
+            [0xF, _, 3, 3] => {
+                let x = nibbles[1];
+
+                let vx = self.v_reg[x as usize];
+
+                let ones = vx % 10;
+                let tens = (vx / 10) % 10;
+                let hundreds = vx / 100;
+
+                self.ram[self.i_reg as usize] = hundreds;
+                self.ram[(self.i_reg + 1) as usize] = tens;
+                self.ram[(self.i_reg + 2) as usize] = ones;
+            }
+
+            // FX55 - Store V0 through VX into I
+            [0xF, _, 5, 5] => {
+                let x = nibbles[1] as usize;
+
+                let i = self.i_reg as usize;
+
+                for idx in 0..=x {
+                    self.ram[i + idx] = self.v_reg[idx];
+                }
+            }
+
+            // FX65 - Store I into V0 through VX
+            [0xF, _, 6, 5] => {
+                let x = nibbles[1] as usize;
+
+                let i = self.i_reg as usize;
+
+                for idx in 0..=x {
+                    self.v_reg[idx] = self.ram[i + idx];
+                }
+            }
+
             [_, _, _, _] => unimplemented!("Unimplemented opcode: {op}"),
         }
     }
