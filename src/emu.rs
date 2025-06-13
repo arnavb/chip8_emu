@@ -308,6 +308,54 @@ impl Emu {
                 self.v_reg[x as usize] = rng & nn;
             }
 
+            // DXYN - Draw sprite
+            // Draw a sprite starting horizontally at VI to VI + n. Wrap sprites around
+            // if necessary. If any pixel is unset, set VF to 1 (or 0 if the opposite
+            // occurs.
+            [0xD, _, _, _] => {
+                let x = nibbles[1];
+                let y = nibbles[2];
+                let n = nibbles[3]; // Sprites can have a height of 1 - 15.
+
+                let x_coord = self.v_reg[x as usize];
+                let y_coord = self.v_reg[y as usize];
+
+                let mut pixel_unset = false;
+
+                for row in 0..n {
+                    let address = self.i_reg + (row as u16);
+                    let sprite_pixel_row = self.ram[address as usize];
+
+                    for col in 0..8 {
+                        let sprite_pixel = (sprite_pixel_row >> col) & 1;
+
+                        if sprite_pixel == 1 {
+                            let screen_x = (x_coord + row) as usize % SCREEN_WIDTH;
+                            let screen_y = (y_coord + col) as usize % SCREEN_HEIGHT;
+
+                            let screen_idx = SCREEN_WIDTH * screen_y + screen_x;
+
+                            debug_assert!(
+                                screen_idx < SCREEN_HEIGHT * SCREEN_HEIGHT,
+                                "incorrectly calculated screen index when drawing!"
+                            );
+
+                            // Each sprite pixel is going to be XOR'd with the existing
+                            // display pixel:
+                            // SP  DP
+                            // ON  OFF -> ON
+                            // ON  ON  -> OFF
+                            // OFF ON  -> ON
+                            // OFF OFF -> OFF
+                            pixel_unset |= self.screen[screen_idx];
+                            self.screen[screen_idx] ^= true;
+                        }
+                    }
+                }
+
+                self.v_reg[0xF] = pixel_unset as u8;
+            }
+
             [_, _, _, _] => unimplemented!("Unimplemented opcode: {op}"),
         }
     }
