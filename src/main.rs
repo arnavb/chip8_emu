@@ -45,7 +45,13 @@ fn main() -> ExitCode {
     'gameloop: loop {
         for event in event_pump.poll_iter() {
             match event {
-                sdl2::event::Event::Quit { .. } => {
+                Event::Quit { .. } => {
+                    break 'gameloop;
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => {
                     break 'gameloop;
                 }
                 _ => (),
