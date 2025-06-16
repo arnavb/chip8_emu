@@ -344,16 +344,17 @@ impl Emu {
                     let sprite_pixel_row = self.ram[address as usize];
 
                     for col in 0..8 {
-                        let sprite_pixel = (sprite_pixel_row >> col) & 1;
+                        // Iterate from MSB to LSB for left to right drawing
+                        let sprite_pixel = (sprite_pixel_row >> (7 - col)) & 1;
 
                         if sprite_pixel == 1 {
-                            let screen_x = (x_coord + row) as usize % SCREEN_WIDTH;
-                            let screen_y = (y_coord + col) as usize % SCREEN_HEIGHT;
+                            let screen_x = (x_coord + col) as usize % SCREEN_WIDTH;
+                            let screen_y = (y_coord + row) as usize % SCREEN_HEIGHT;
 
                             let screen_idx = SCREEN_WIDTH * screen_y + screen_x;
 
                             debug_assert!(
-                                screen_idx < SCREEN_HEIGHT * SCREEN_HEIGHT,
+                                screen_idx < SCREEN_WIDTH * SCREEN_HEIGHT,
                                 "incorrectly calculated screen index when drawing!"
                             );
 
