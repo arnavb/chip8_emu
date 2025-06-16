@@ -1,6 +1,6 @@
 use std::{env, fs, io, process::ExitCode};
 
-use constants::{SCALE, SCREEN_HEIGHT, SCREEN_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH};
+use constants::{SCALE, SCREEN_WIDTH, TICKS_PER_FRAME, WINDOW_HEIGHT, WINDOW_WIDTH};
 use emu::Emu;
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect, render};
 
@@ -72,7 +72,10 @@ fn main() -> ExitCode {
             }
         }
 
-        emu.tick();
+        for _ in 0..TICKS_PER_FRAME {
+            emu.tick();
+        }
+
         emu.tick_timers();
         draw_screen(&emu, &mut canvas);
     }
