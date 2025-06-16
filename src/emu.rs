@@ -348,8 +348,10 @@ impl Emu {
                         let sprite_pixel = (sprite_pixel_row >> (7 - col)) & 1;
 
                         if sprite_pixel == 1 {
-                            let screen_x = (x_coord + col) as usize % SCREEN_WIDTH;
-                            let screen_y = (y_coord + row) as usize % SCREEN_HEIGHT;
+                            // Wrapping add, as a register could hold the maximum u8 value and
+                            // would need to be wrapped around
+                            let screen_x = x_coord.wrapping_add(col) as usize % SCREEN_WIDTH;
+                            let screen_y = y_coord.wrapping_add(row) as usize % SCREEN_HEIGHT;
 
                             let screen_idx = SCREEN_WIDTH * screen_y + screen_x;
 
